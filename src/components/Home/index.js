@@ -1,20 +1,9 @@
 import {Component} from 'react'
 import Loader from 'react-loader-spinner'
-import CourseItem from '../CourseItem'
-import Header from '../Header'
+import CourseItemCard from '../CourseItemCard'
+import FailureView from '../FailureView'
 
-import {
-  BgContainer,
-  ErrorContainer,
-  ErrorImg,
-  ErrorHeading,
-  ErrorInfo,
-  ErrorRetryButton,
-  CourseItemsList,
-  CoursesListContainer,
-  Heading,
-  LoaderContainer,
-} from './styledComponents'
+import './index.css'
 
 const apiStatusConstants = {
   initial: 'INITIAL',
@@ -25,32 +14,37 @@ const apiStatusConstants = {
 
 class Home extends Component {
   state = {
+    coursesList: [],
     apiStatus: apiStatusConstants.initial,
-    courseList: [],
   }
 
   componentDidMount() {
-    this.getCourses()
+    this.getCoursesList()
   }
 
-  getCourses = async () => {
+  getCoursesList = async () => {
     this.setState({
       apiStatus: apiStatusConstants.inProgress,
     })
-    const url = 'https://apis.ccbp.in/te/courses'
+
+    const coursesUrl = 'https://apis.ccbp.in/te/courses'
     const options = {
       method: 'GET',
     }
-    const response = await fetch(url, options)
+    const response = await fetch(coursesUrl, options)
+
     if (response.ok) {
-      const fetchedData = await response.json()
-      const updatedData = fetchedData.courses.map(each => ({
-        id: each.id,
-        name: each.name,
-        logoUrl: each.logo_url,
+      const data = await response.json()
+      const updatedData = data.courses.map(eachCourse => ({
+        id: eachCourse.id,
+        name: eachCourse.name,
+        logoUrl: eachCourse.logo_url,
       }))
+
+      console.log(updatedData)
+
       this.setState({
-        courseList: updatedData,
+        coursesList: updatedData,
         apiStatus: apiStatusConstants.success,
       })
     } else {
@@ -60,52 +54,36 @@ class Home extends Component {
     }
   }
 
-  onClickRetry = () => {
-    this.getCourses()
-  }
-
-  renderFailureView = () => (
-    <ErrorContainer>
-      <ErrorImg
-        src="https://assets.ccbp.in/frontend/react-js/tech-era/failure-img.png"
-        alt="failure view"
-      />
-      <ErrorHeading>Oops! Something Went Wrong</ErrorHeading>
-      <ErrorInfo>
-        We cannot seem to find the page you are looking for.
-      </ErrorInfo>
-      <ErrorRetryButton
-        type="button"
-        className="retry-button"
-        onClick={this.onClickRetry}
-      >
-        Retry
-      </ErrorRetryButton>
-    </ErrorContainer>
-  )
-
   renderCoursesList = () => {
-    const {courseList} = this.state
+    const {coursesList} = this.state
 
     return (
-      <CoursesListContainer>
-        <Heading>Courses</Heading>
-        <CourseItemsList>
-          {courseList.map(each => (
-            <CourseItem key={each.id} courseItemDetails={each} />
+      <div className="container">
+        <h1 className="courses-heading">Courses</h1>
+        <ul className="courses-list">
+          {coursesList.map(eachCourse => (
+            <CourseItemCard key={eachCourse.id} courseDetails={eachCourse} />
           ))}
-        </CourseItemsList>
-      </CoursesListContainer>
+        </ul>
+      </div>
     )
   }
 
-  renderLoader = () => (
-    <LoaderContainer data-testid="loader">
-      <Loader type="ThreeDots" color="#00BFFF" height={50} width={50} />
-    </LoaderContainer>
+  retryButtonClicked = () => {
+    this.getCoursesList()
+  }
+
+  renderFailureView = () => (
+    <FailureView retryButtonClicked={this.retryButtonClicked} />
   )
 
-  renderCourses = () => {
+  renderLoadingView = () => (
+    <div data-testid="loader" className="courses-loader">
+      <Loader type="ThreeDots" color="#4656a1" height="50" width="50" />
+    </div>
+  )
+
+  renderPageDetails = () => {
     const {apiStatus} = this.state
 
     switch (apiStatus) {
@@ -114,19 +92,14 @@ class Home extends Component {
       case apiStatusConstants.failure:
         return this.renderFailureView()
       case apiStatusConstants.inProgress:
-        return this.renderLoader()
+        return this.renderLoadingView()
       default:
         return null
     }
   }
 
   render() {
-    return (
-      <BgContainer>
-        <Header />
-        {this.renderCourses()}
-      </BgContainer>
-    )
+    return <div className="Home-container">{this.renderPageDetails()}</div>
   }
 }
 
